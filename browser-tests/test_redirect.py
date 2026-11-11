@@ -15,3 +15,12 @@ class TestRedirect:
         # TODO: adjust expected URL pattern
         # This assumes target is the final URL path
         expect(page).to_have_url(re.compile(re.escape(target)))
+
+
+class TestFindWithoutName:
+    def test_keeps_page_title(self, server: str, page: Page):
+        """Without a name, the page explains the problem but keeps its own title."""
+        page.goto(f"{server}/find/")
+        page.wait_for_load_state("networkidle")
+        expect(page.locator("#title")).to_have_text("No name provided")
+        expect(page).to_have_title("Cross-Reference Redirection")

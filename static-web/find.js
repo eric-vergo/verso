@@ -181,7 +181,8 @@ if (paramName) {
     }
 } else {
     addEventListener("DOMContentLoaded", (_event) => {
-        document.title = "No name provided";
+        // Keep the page's own title: "No name provided" describes the missing query parameter,
+        // not the page, and would otherwise become the name of a bookmark or browser tab.
         const titleElem = document.querySelector("#title");
         if (titleElem) {
             titleElem.innerHTML = "No name provided";
