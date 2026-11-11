@@ -111,7 +111,7 @@ r#"
   font-family: var(--verso-structure-font-family);
   margin: 1rem;
   width: fit-content;
-  border: 1px solid #ddd;
+  border: 1px solid var(--verso-border-color, #ddd);
   padding: 0.5rem;
 
   /* These are necessary for the container to behave nicely on mobile */
@@ -132,7 +132,7 @@ r#"
   -webkit-user-select: none;
   display: inline-block;
   content: counter(linenumber);
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--verso-border-color, #ddd);
   width: 2em;
   padding-right: 0.25em;
   margin-right: 0.25em;
@@ -149,7 +149,7 @@ r#"
   opacity: 1;
 }
 .example-file > .line:hover, .example-file > .line:hover::before {
-  background-color: #eee;
+  background-color: var(--verso-code-hover-bg-color, #eee);
 }
 .example-file > .empty {
   display: block;
@@ -161,7 +161,7 @@ r#"
   -webkit-user-select: none;
   display: inline-block;
   content: "";
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--verso-border-color, #ddd);
   width: 2em;
   padding-right: 0.25em;
   margin-right: 0.25em;

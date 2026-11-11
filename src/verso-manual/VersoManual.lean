@@ -724,6 +724,9 @@ end
 def emitTocResizeJs (dir : System.FilePath) : IO Unit := do
   IO.FS.writeFile (dir / "toc-resize.js") tocResize.js
 
+def emitThemeToggleJs (dir : System.FilePath) : IO Unit := do
+  IO.FS.writeFile (dir / "theme-toggle.js") themeToggle.js
+
 def wordCount
     (wcPath : System.FilePath) (config : Config)
     (text : Part Manual) : EmitM Unit := do
@@ -804,6 +807,7 @@ where
     IO.FS.withFile (dir.join "book.css") .write fun h => do
       h.putStrLn Html.Css.pageStyle
     emitTocResizeJs dir
+    emitThemeToggleJs dir
     for (src, dest) in config.extraFiles do
       copyRecursively src (dir.join dest)
     for (src, dest) in config.extraFilesHtml do
@@ -873,6 +877,7 @@ where
     IO.FS.withFile (root / "book.css") .write fun h => do
       h.putStrLn Html.Css.pageStyle
     emitTocResizeJs root
+    emitThemeToggleJs root
     for (src, dest) in config.extraFiles do
       copyRecursively src (root.join dest)
     for (src, dest) in config.extraFilesHtml do

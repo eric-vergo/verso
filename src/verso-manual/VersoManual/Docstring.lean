@@ -397,7 +397,7 @@ instance [BEq α] [Hashable α] [ToJson α] : ToJson (HashSet α) where
 def docstringStyle := r#"
 .namedocs {
   position: relative;
-  border: solid 1px #98B2C0;
+  border: solid 1px var(--verso-docstring-border-color, #98B2C0);
   border-radius: .5rem;
   padding-top: var(--verso--box-padding);
   margin-top: var(--verso--box-vertical-margin);
@@ -412,7 +412,7 @@ def docstringStyle := r#"
   /* Add a padding. this is the same as the margin applied to the first and last child.
      The effect is that the padding looks the same size on all sides. */
   padding: 0 var(--verso--box-padding);
-  border-top: 1px solid #98B2C0;
+  border-top: 1px solid var(--verso-docstring-border-color, #98B2C0);
 }
 
 .namedocs .text > pre {
@@ -433,11 +433,11 @@ def docstringStyle := r#"
   position: absolute;
   top: -0.65rem;
   left: 1rem;
-  background: #fff;
+  background: var(--verso-background-color, #fff);
   padding: 0 .5rem .125rem;
-  border: 1px solid #98B2C0;
+  border: 1px solid var(--verso-docstring-border-color, #98B2C0);
   border-radius: 1rem;
-  color: #555;
+  color: var(--verso-muted-color, #555);
 }
 
 .namedocs .docstring-section {
