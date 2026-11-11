@@ -22,6 +22,7 @@ public import UsersGuide.Releases.Entries.LegacyInlineRoles
 public import UsersGuide.Releases.Entries.LinkFootnoteResolution
 public import UsersGuide.Releases.Entries.LiterateHtmlKatex
 public import UsersGuide.Releases.Entries.LiterateProgramming
+public import UsersGuide.Releases.Entries.ManualDarkTheme
 public import UsersGuide.Releases.Entries.ManualMarginalia
 public import UsersGuide.Releases.Entries.MethodInMultiVerso
 public import UsersGuide.Releases.Entries.ReleaseNotesChapter

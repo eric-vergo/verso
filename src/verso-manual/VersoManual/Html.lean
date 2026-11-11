@@ -418,6 +418,29 @@ next to `toc-resize.js` so the two stay in sync and are type-checked together.
 -/
 def tocWidthPreloadJs : String := include_str "../../../static-web/toc-resize-preload.js"
 
+/--
+Applies a saved color theme before the first paint.
+
+This is the inline counterpart to `static-web/theme-toggle.js`: running it in the page head sets
+the root element's `data-theme` attribute early enough that a reader who chose a theme does not see
+the page flash in the system's color scheme first. The deferred script then takes over the theme
+control.
+-/
+def themePreloadJs : String := include_str "../../../static-web/theme-preload.js"
+
+/--
+The color theme control: a choice between the light theme, the dark theme, and the reader's system
+color scheme. It stays hidden until `theme-toggle.js` sets it up, since it does nothing without
+scripts.
+-/
+def themeToggle : Html := {{
+  <div class="theme-toggle" role="radiogroup" aria-label="Color theme" data-verso-theme-toggle="" hidden="hidden">
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="light" title="Light theme">"☀ Light"</button>
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="dark" title="Dark theme">"☾ Dark"</button>
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="auto" title="Follow the system's color scheme">"Auto"</button>
+  </div>
+}}
+
 open Verso.Search in
 public def page
     (toc : Toc) (path : Path)
@@ -447,6 +470,9 @@ public def page
         <script>
           {{tocWidthPreloadJs}}
         </script>
+        <script>
+          {{themePreloadJs}}
+        </script>
         <base href={{relativeRoot}}/>
         <meta charset="utf-8"/>
         <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1"/>
@@ -456,6 +482,7 @@ public def page
         <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" integrity="sha384-zbcZAIxlvJtNE3Dp5nxLXdXtXyxwOdnILY1TDPVmKFhl4r4nSUG1r8bcFXGVa4Te" crossorigin="anonymous"></script>
         {{ searchAssetTags }}
         <script src="toc-resize.js" defer="defer"></script>
+        <script src="theme-toggle.js" defer="defer"></script>
         {{extraJsFiles.map fun f => ({{<script src=s!"{f.1}" {{if f.2 then defer else #[]}}></script>}})}}
         {{extraStylesheets.map (fun url => {{<link rel="stylesheet" href={{url}}/> }})}}
         {{extraCss.toArray.map ({{<style>{{Html.text false ·.css}}</style>}})}}
@@ -501,6 +528,7 @@ public def page
                     else .empty}}
                 </ul>
                 }} else .empty }}
+              {{themeToggle}}
             </div>
           </nav>
           <div class="toc-resize-handle"/>
