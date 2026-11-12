@@ -42,6 +42,18 @@ public def tippyJs : JsFile where
     contents := tippy.map
   }
 
+/--
+The Markdown renderer for docstrings in hovers (`marked.parse` in the highlighting script), shipped
+with the site instead of loaded from a CDN, so that pages work offline.
+-/
+public def markedJs : JsFile where
+  filename := "marked.umd.min.js"
+  contents := Highlighted.WebAssets.marked
+  sourceMap? := some {
+    filename := "marked.umd.min.js.map"
+    contents := marked.map
+  }
+
 public def tippyCss : CssFile where
   filename := "tippy-border.css"
   contents := tippy.border.css
@@ -49,9 +61,9 @@ public def tippyCss : CssFile where
 public def highlightAssets : HtmlAssets where
   extraCss := { CSS.mk highlightingStyle }
   extraJs := { JS.mk highlightingJs }
-  extraJsFiles := { popperJs, tippyJs }
+  extraJsFiles := { popperJs, tippyJs, markedJs }
   extraCssFiles := { tippyCss }
-  licenseInfo := { tippy.js, popper.js }
+  licenseInfo := { tippy.js, popper.js, marked.js }
 
 public instance : CanHighlightCode BlockDescr where
   addDependencies b :=
