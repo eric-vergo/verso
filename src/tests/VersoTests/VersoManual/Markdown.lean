@@ -130,3 +130,34 @@ is heuristically fixed. -/
 # another header
 ## one more
 "#)
+
+/-- The text of converted inlines, with code in backticks and links as `[text](url)`. -/
+partial def inlineText : Inline Manual → String
+  | .text s => s
+  | .code s => s!"`{s}`"
+  | .link txt url => s!"[{String.join (txt.toList.map inlineText)}]({url})"
+  | _ => "?"
+
+/--
+Converts Markdown with `Markdown.parse` and `blockFromMarkdown'`, then renders each paragraph's text
+(or the error) on its own line.
+-/
+def convertedText (input : String) : String :=
+  match Markdown.parse input with
+  | none => "no parse"
+  | some doc =>
+    match doc.blocks.mapM (blockFromMarkdown' (g := Manual) ·) with
+    | .error e => s!"error: {e}"
+    | .ok blocks => "\n".intercalate <| blocks.toList.map fun
+      | .para xs => String.join (xs.toList.map inlineText)
+      | _ => "?"
+
+/-- info: a <title> b <b>c</b> `x<y>` [https://example.com](https://example.com) -/
+#test_msgs in
+/- Raw inline HTML in a docstring is text, not a crash; autolinks are still links. -/
+#eval IO.println <| convertedText "a <title> b <b>c</b> `x<y>` <https://example.com>"
+
+/-- info: error: Unexpected literal HTML in parsed Markdown -/
+#test_msgs in
+/- An HTML block is still rejected with an error message. -/
+#eval IO.println <| convertedText "<div>\nx\n</div>\n"
