@@ -381,9 +381,14 @@ where
       | none => {{<span class="unnumbered"></span>}}
       | some ns => {{<span class="number">{{sectionNumberString ns}}</span>" "}}
 
-public def titlePage (title : Html) (authors : List String) (authorshipNote : Option String) (intro : Html) : Html := {{
+/--
+The root page's title block. `titleAttrs` go on its `<h1>` (the root part's HTML `id`, so a link
+to the page's tag lands on it).
+-/
+public def titlePage (title : Html) (authors : List String) (authorshipNote : Option String) (intro : Html)
+    (titleAttrs : Array (String × String) := #[]) : Html := {{
   <div class="titlepage">
-    <h1>{{title}}</h1>
+    <h1 {{titleAttrs}}>{{title}}</h1>
     <div class="authors">
       {{authors.toArray.map ({{ <span class="author">{{Coe.coe ·}}</span> }})}}
       {{if let some note := authorshipNote then {{<p class="note">{{note}}</p>}} else .empty }}
