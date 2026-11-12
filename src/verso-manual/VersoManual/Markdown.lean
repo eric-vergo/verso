@@ -29,6 +29,17 @@ open Lean
 namespace Verso.Genre.Manual.Markdown
 
 /--
+Parses Markdown for conversion to Verso content.
+
+Raw inline HTML is not recognized: a span such as `<title>` is kept as ordinary text. The
+converters in this module have no representation for inline HTML, and with HTML spans enabled the
+parser places them where the converters expect text, which crashed the process. HTML blocks are
+still parsed, and the converters reject them with an error message.
+-/
+def parse (input : String) : Option MD4Lean.Document :=
+  MD4Lean.parse input (MD4Lean.MD_DIALECT_COMMONMARK ||| MD4Lean.MD_FLAG_NOHTMLSPANS)
+
+/--
 Markdown documents in practice have unpredictable nesting of headers, so the nesting is provided
 here as ordered handlers, rather than as a mapping from levels to handlers.
 

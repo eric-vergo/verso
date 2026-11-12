@@ -1441,7 +1441,7 @@ meta def docstring : BlockCommandOf DocstringConfig
         match ← getDocString? (← getEnv) name with
         | none => pure #[]
         | some docs =>
-          let some ast := MD4Lean.parse docs
+          let some ast := Markdown.parse docs
             | throwErrorAt x "Failed to parse docstring as Markdown"
 
           ast.blocks.mapM (blockFromMarkdownWithLean [name])
@@ -1466,7 +1466,7 @@ where
         let header := if isClass then "Instance Constructor" else "Constructor"
         let sigDesc : Array Term ←
           if let some docs := constructor.docstring? then
-            let some mdAst := MD4Lean.parse docs
+            let some mdAst := Markdown.parse docs
               | throwError "Failed to parse docstring as Markdown"
             mdAst.blocks.mapM (blockFromMarkdownWithLean [name, constructor.name])
           else pure (#[] : Array Term)
@@ -1488,7 +1488,7 @@ where
             i.fieldFrom.head?.bind (fun n => parents.findIdx? (·.name == n.name))
           let sigDesc : Array Term ←
             if let some docs := i.docString? then
-              let some mdAst := MD4Lean.parse docs
+              let some mdAst := Markdown.parse docs
                 | throwError "Failed to parse docstring as Markdown"
               mdAst.blocks.mapM (blockFromMarkdownWithLean <| name :: (constructor?.map ([·.name])).getD [])
             else
@@ -1504,7 +1504,7 @@ where
         ctors.mapM fun c => withTheReader Core.Context ({· with currNamespace := name}) do
           let sigDesc ←
             if let some docs := c.docstring? then
-              let some mdAst := MD4Lean.parse docs
+              let some mdAst := Markdown.parse docs
                 | throwError "Failed to parse docstring as Markdown"
               mdAst.blocks.mapM (blockFromMarkdownWithLean [name, c.name])
             else pure (#[] : Array Term)
@@ -1543,7 +1543,7 @@ meta def includeDocstring : BlockCommandOf IncludeDocstringOpts
       match ← getDocString? (← getEnv) name with
       | none => pure #[]
       | some docs =>
-        let some ast := MD4Lean.parse docs
+        let some ast := Markdown.parse docs
           | throwError "Failed to parse docstring as Markdown"
         ast.blocks.mapM fromMd
 
@@ -1592,7 +1592,7 @@ meta def optionDocs : BlockCommandOf optionDocs.Args
   | x => do
     let optDecl ← getOptionDecl x.getId
     Doc.PointOfInterest.save x.raw optDecl.declName.toString
-    let some mdAst := MD4Lean.parse optDecl.descr
+    let some mdAst := Markdown.parse optDecl.descr
       | throwErrorAt x.raw "Failed to parse docstring as Markdown"
     let contents ← mdAst.blocks.mapM (blockFromMarkdownWithLean [])
     ``(Verso.Doc.Block.other (Verso.Genre.Manual.Block.optionDocs $(quote x.getId) $(quote <| highlightDataValue optDecl.defValue)) #[$contents,*])
@@ -1736,7 +1736,7 @@ meta def tactic : DirectiveExpanderOf TacticDocsOptions
       else
         let some str := tactic.docString
           | throwError "Tactic {tactic.userName} ({tactic.internalName}) has no docstring"
-        let some mdAst := MD4Lean.parse str
+        let some mdAst := Markdown.parse str
           | throwError m!"Failed to parse docstring as Markdown. Docstring contents:\n{repr str}"
         mdAst.blocks.mapM (blockFromMarkdownWithLean [])
     let userContents ← more.mapM elabBlock
@@ -1879,7 +1879,7 @@ meta def conv : DirectiveExpanderOf TacticDocsOptions
     let tactic ← getConvTactic opts.name opts.allowMissing
     Doc.PointOfInterest.save (← getRef) tactic.name.toString
     let contents ← if let some d := tactic.docs? then
-        let some mdAst := MD4Lean.parse d
+        let some mdAst := Markdown.parse d
           | throwError "Failed to parse docstring as Markdown"
         mdAst.blocks.mapM (blockFromMarkdownWithLean [])
       else pure #[]
