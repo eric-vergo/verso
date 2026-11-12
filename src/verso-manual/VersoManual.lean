@@ -905,6 +905,9 @@ where
       if let some id := part.metadata.bind (·.id) then
         permalink id state
       else .empty
+    -- The page's own tag is its title's `id`, as a section's tag is its header's: links to the
+    -- part (`page/#tag`, from tables of contents and cross-references) then have a target.
+    let titleAttrs := part.metadata.bind (·.id) |>.map state.htmlId |>.getD #[]
     let introHtml ← Html.seq <$> part.content.mapM (Manual.toHtml opts ctxt state definitionIds linkTargets codeOptions)
     let contents ←
       if depth == 0 || part.htmlSplit == .never then
@@ -933,13 +936,13 @@ where
             </section>
           }}
         else .empty
-        {{<section>{{Html.titlePage titleHtml authors authorshipNote introHtml ++ contents}} {{subTocHtml}}</section>}}
+        {{<section>{{Html.titlePage titleHtml authors authorshipNote introHtml (titleAttrs := titleAttrs) ++ contents}} {{subTocHtml}}</section>}}
       else
         let subTocHtml :=
           if (depth > 0 && part.htmlSplit != .never) && subToc.size > 0 && part.htmlToc then
             {{<ol class="section-toc">{{subToc.map (·.html config.sectionTocDepth)}}</ol>}}
           else .empty
-        {{<section><h1>{{titleHtml}}</h1> {{introHtml}} {{contents}} {{subTocHtml}}</section>}}
+        {{<section><h1 {{titleAttrs}}>{{titleHtml}}</h1> {{introHtml}} {{contents}} {{subTocHtml}}</section>}}
 
     ensureDir dir
     IO.FS.withFile (dir.join "index.html") .write fun h => do
