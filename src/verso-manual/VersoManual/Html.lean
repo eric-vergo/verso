@@ -436,13 +436,13 @@ The color theme control: a choice between the light theme, the dark theme, and t
 color scheme. It stays hidden until `theme-toggle.js` sets it up, since it does nothing without
 scripts.
 -/
-def themeToggle : Html := {{
+def themeToggle : Html := html%{
   <div class="theme-toggle" role="radiogroup" aria-label="Color theme" data-verso-theme-toggle="" hidden="hidden">
-    <button type="button" role="radio" aria-checked="false" data-theme-choice="light" title="Light theme">"☀ Light"</button>
-    <button type="button" role="radio" aria-checked="false" data-theme-choice="dark" title="Dark theme">"☾ Dark"</button>
-    <button type="button" role="radio" aria-checked="false" data-theme-choice="auto" title="Follow the system's color scheme">"Auto"</button>
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="light" title="Light theme">{"☀ Light"}</button>
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="dark" title="Dark theme">{"☾ Dark"}</button>
+    <button type="button" role="radio" aria-checked="false" data-theme-choice="auto" title="Follow the system's color scheme">{"Auto"}</button>
   </div>
-}}
+}
 
 open Verso.Search in
 public def page
