@@ -10,6 +10,7 @@ import Std.Data.HashSet
 import Lean.Elab.DeclUtil
 import Lean.Meta.Reduce
 import Lean.DocString.Syntax
+public import Lean.DocString.View
 import Lean.DocString
 
 import SubVerso.Highlighting
@@ -29,7 +30,10 @@ namespace Verso.Doc.Elab
 
 open Lean
 open Lean.Elab
-open Lean.Doc.Syntax
+open Lean.Doc (BlockView BoldView CodeView EmphView FootnoteView HeaderView ImageView InlineView
+  LinebreakView LinkView MathView RoleView TextView VersoBlock VersoCodeBlock VersoInline
+  VersoRefName)
+open Lean.Doc.Parser
 open Std (HashMap HashSet)
 open Verso.ArgParse (FromArgs SigDoc)
 
@@ -38,56 +42,56 @@ initialize registerTraceClass `Elab.Verso.part
 initialize registerTraceClass `Elab.Verso.block
 
 
--- For use in IDE features and previews and such
-@[inline_to_string Lean.Doc.Syntax.text]
-public meta def _root_.Lean.Doc.Syntax.text.inline_to_string : InlineToString
-  | _, `(inline| $s:str) => some s.getString
-  | _, _ => none
+-- For use in IDE features and previews and such.
+-- `inline_to_string` takes its key literally rather than resolving it, so these names are
+-- written in full.
+@[inline_to_string Lean.Doc.Parser.Inline.text]
+public meta def _root_.Lean.Doc.Parser.Inline.text.inline_to_string : InlineToString
+  | _, stx => TextView.of ⟨stx⟩ |>.map (·.getVersoText)
 
-@[inline_to_string Lean.Doc.Syntax.linebreak]
-public meta def _root_.Lean.Doc.Syntax.linebreak.inline_to_string : InlineToString
-  | _, `(inline|line! $_) => some " "
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.linebreak]
+public meta def _root_.Lean.Doc.Parser.Inline.linebreak.inline_to_string : InlineToString
+  | _, stx => LinebreakView.of ⟨stx⟩ |>.map fun _ => " "
 
-@[inline_to_string Lean.Doc.Syntax.emph]
-public meta def _root_.Lean.Doc.Syntax.emph.inline_to_string : InlineToString
-  | env, `(inline| _[ $args* ]) =>
-    some <| String.intercalate " " (Array.map (inlineToString env) args).toList
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.emph]
+public meta def _root_.Lean.Doc.Parser.Inline.emph.inline_to_string : InlineToString
+  | env, stx => EmphView.of ⟨stx⟩ |>.map fun v =>
+    String.intercalate " " (v.content.toList.map (inlineToString env ·.raw))
 
-@[inline_to_string Lean.Doc.Syntax.bold]
-public meta def _root_.Lean.Doc.Syntax.bold.inline_to_string : InlineToString
-  | env, `(inline| *[ $args* ]) =>
-    some <| String.intercalate " " (Array.map (inlineToString env) args).toList
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.bold]
+public meta def _root_.Lean.Doc.Parser.Inline.bold.inline_to_string : InlineToString
+  | env, stx => BoldView.of ⟨stx⟩ |>.map fun v =>
+    String.intercalate " " (v.content.toList.map (inlineToString env ·.raw))
 
-@[inline_to_string Lean.Doc.Syntax.code]
-public meta def _root_.Lean.Doc.Syntax.code.inline_to_string : InlineToString
-  | _, `(inline| code( $str )) =>
-    some str.getString
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.code]
+public meta def _root_.Lean.Doc.Parser.Inline.code.inline_to_string : InlineToString
+  | _, stx => CodeView.of ⟨stx⟩ |>.map (·.getVersoCode)
 
-@[inline_to_string Lean.Doc.Syntax.link]
-public meta def _root_.Lean.Doc.Syntax.link.inline_to_string : InlineToString
-  | env, `(inline| link[ $args* ] $_:link_target) =>
-    some <| String.intercalate " " (Array.map (inlineToString env) args).toList
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.inline_math]
+public meta def _root_.Lean.Doc.Parser.Inline.inline_math.inline_to_string : InlineToString
+  | _, stx => MathView.of ⟨stx⟩ |>.map (·.getVersoCode)
 
-@[inline_to_string Lean.Doc.Syntax.image]
-public meta def _root_.Lean.Doc.Syntax.image.inline_to_string : InlineToString
-  | _, `(inline| image( $_:str ) $_:link_target) => some ""
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.display_math]
+public meta def _root_.Lean.Doc.Parser.Inline.display_math.inline_to_string : InlineToString
+  | _, stx => MathView.of ⟨stx⟩ |>.map (·.getVersoCode)
 
-@[inline_to_string Lean.Doc.Syntax.footnote]
-public meta def _root_.Lean.Doc.Syntax.footnote.inline_to_string : InlineToString
-  | _, `(inline| footnote( $_:str )) => some ""
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.link]
+public meta def _root_.Lean.Doc.Parser.Inline.link.inline_to_string : InlineToString
+  | env, stx => LinkView.of ⟨stx⟩ |>.map fun v =>
+    String.intercalate " " (v.content.toList.map (inlineToString env ·.raw))
 
-@[inline_to_string Lean.Doc.Syntax.role]
-public meta def _root_.Lean.Doc.Syntax.role.inline_to_string : InlineToString
-  | env, `(inline| role{ $_ $_* }[ $body* ]) =>
-    String.join (body.toList.map (inlineToString env <| ·.raw))
-  | _, _ => none
+@[inline_to_string Lean.Doc.Parser.Inline.image]
+public meta def _root_.Lean.Doc.Parser.Inline.image.inline_to_string : InlineToString
+  | _, stx => ImageView.of ⟨stx⟩ |>.map fun _ => ""
+
+@[inline_to_string Lean.Doc.Parser.Inline.footnote]
+public meta def _root_.Lean.Doc.Parser.Inline.footnote.inline_to_string : InlineToString
+  | _, stx => FootnoteView.of ⟨stx⟩ |>.map fun _ => ""
+
+@[inline_to_string Lean.Doc.Parser.Inline.role]
+public meta def _root_.Lean.Doc.Parser.Inline.role.inline_to_string : InlineToString
+  | env, stx => RoleView.of ⟨stx⟩ |>.map fun v =>
+    String.join (v.content.toList.map (inlineToString env ·.raw))
 
 @[inline_to_string null]
 public meta def nullInline_to_string : InlineToString
@@ -112,9 +116,10 @@ public def inlineSyntaxToString (env : Environment) (inlines : Syntax) : String 
     else
       "<missing>"
 
-public def headerStxToString (env : Environment) : Syntax → String
-  | `(block|header($_){$inlines*}) => inlinesToString env inlines
-  | _ => "<missing>"
+public def headerStxToString (env : Environment) (headerStx : Syntax) : String :=
+  match HeaderView.of ⟨headerStx⟩ with
+  | some v => inlinesToString env (v.content.map (·.raw))
+  | none => "<missing>"
 
 /--
 Specifies the elaboration behavior of inline references in Verso.
@@ -145,12 +150,37 @@ public structure DocElabContext where
   {lit}`` `(fun $docReconstructionPlaceholder => $termContainingFreeVariable) ``.
   -/
   docReconstructionPlaceholder : Option Ident
+
+  /--
+  The root name used for the document and its generated block definitions.
+  -/
+  docConstName : Name
+
+  /--
+  {open DocElabContext}
+
+  The name of the declaration under which elaboration runs, which is used as a source of auxiliary
+  definition names.
+
+  While a top-level block is elaborated, it is the block definition name of that block, and
+  otherwise it is {name}`docConstName`. The names of the block definitions created while a top-level
+  block is elaborated are also assigned based on it.
+  -/
+  declName : Name := docConstName
 deriving Inhabited
 
-
-public def DocElabContext.fromGenreTerm (genreSyntax : Term) : TermElabM DocElabContext := do
+/--
+Elaborates the genre {name}`genreSyntax` and creates the context for elaborating the document whose
+constant name is {name}`docConstName`.
+-/
+public def DocElabContext.fromGenreTerm (genreSyntax : Term) (docConstName : Name) :
+    TermElabM DocElabContext := do
   let genre ← Term.elabTerm genreSyntax (some (.const ``Doc.Genre []))
-  return DocElabContext.mk genreSyntax genre .always (.some <| mkIdent (← mkFreshUserName `docReconst))
+  return {
+    genreSyntax, genre, refsAllowed := .always,
+    docReconstructionPlaceholder := some <| mkIdent (← mkFreshUserName `docReconst),
+    docConstName
+  }
 
 public structure DocElabM.State where
   linkRefs : HashMap String DocUses := {}
@@ -166,13 +196,27 @@ deriving Inhabited
 public structure PartElabM.State where
   partContext : PartContext
   linkDefs : HashMap String (DocDef String) := {}
-  footnoteDefs : HashMap String (DocDef (Array (TSyntax `term))) := {}
+  /--
+  The footnote definitions, by label. The value of each is a term that denotes the footnote's
+  contents as a function from the document reconstruction data to inlines.
+  -/
+  footnoteDefs : HashMap String (DocDef Term) := {}
   /-- The footnote uses in each footnote's contents, by the footnote's label. -/
   footnoteUses : HashMap String (Array (String × Syntax)) := {}
-  deferredBlocks : Array (Name × Term) := #[]
   /--
-  Whether the top-level block being elaborated contains {lean}`Syntax.missing`, which marks where
-  its parser stopped at a parse error. Such a block is partial syntax.
+  The block index counter, which is the index of the next block definition name that extends the
+  current parent name.
+
+  The names of block definitions are assigned based on the order of elaboration rather than the
+  structure of either the source document or the final document.
+
+  While a top-level block is elaborated, the parent name is the block's definition name. The counter
+  starts at 0 for the block, and its value from before the block is restored afterwards.
+  -/
+  nextBlockIndex : Nat := 0
+  /--
+  Whether the top-level block being elaborated contains {lean}`Syntax.missing`, which marks a block
+  with a parse error. Such a block is partial syntax.
   -/
   blockHasMissing : Bool := false
 deriving Inhabited
@@ -203,7 +247,7 @@ public instance : MonadQuotation PartElabM := inferInstanceAs <| MonadQuotation 
 public instance : Monad PartElabM := inferInstanceAs <| Monad (ReaderT DocElabContext (StateT DocElabM.State (StateT PartElabM.State TermElabM)))
 
 public instance : MonadLift TermElabM PartElabM where
-  monadLift act := private fun _ st st' => do return ((← Term.withDeclName (← currentDocName) act, st), st')
+  monadLift act := private fun ctx st st' => do return ((← Term.withDeclName ctx.declName act, st), st')
 
 public instance : MonadExceptOf Exception PartElabM := inferInstanceAs <| MonadExceptOf Exception (ReaderT DocElabContext (StateT DocElabM.State (StateT PartElabM.State TermElabM)))
 
@@ -252,7 +296,7 @@ public instance [MonadWithReaderOf ρ TermElabM] : MonadWithReaderOf ρ DocElabM
   inferInstanceAs <| MonadWithReaderOf ρ (ReaderT DocElabContext (ReaderT PartElabM.State (StateT DocElabM.State TermElabM)))
 
 public instance : MonadLift TermElabM DocElabM where
-  monadLift act := fun _ _ st' => do return (← Term.withDeclName (← currentDocName) act, st')
+  monadLift act := fun ctx _ st' => do return (← Term.withDeclName ctx.declName act, st')
 
 public instance : MonadLift IO DocElabM where
   monadLift act := fun _ _ st' => do return (← act, st')
@@ -330,31 +374,153 @@ public partial def PartElabM.closePartsUntil (outer : Nat) (endPos : String.Pos.
     | none => pure ()
 
 /--
-Adds a block (syntax denoting a {lit}`Block g`) to the elaboration state.
-
-The block becomes a function of document reconstruction data. The function's parameter is
-{name}`blockInternalDocReconstructionPlaceholder` if it is given, and otherwise the current
-{name}`DocElabContext`'s {name}`DocElabContext.docReconstructionPlaceholder`.
+The block definition name that consists of {name}`parent`, {lit}`block` and the index {name}`i`. The
+parent name {name}`parent` is a document's constant name or a block definition name.
 -/
-public def PartElabM.addBlock (block : TSyntax `term) (blockInternalDocReconstructionPlaceholder : Option Ident := .none)  : PartElabM Unit := do
-  -- The syntax denoting the top-level Part structure will refer to this block by name, passing it
-  -- the ident that holds the `DocReconstruction` object.
-  let name ← mkFreshUserName `block
+public def blockDefinitionName (parent : Name) (i : Nat) : Name :=
+  (parent ++ `block).num i
+
+/-- Increments the block index counter and returns its value before the increment. -/
+def PartElabM.incrementBlockIndex : PartElabM Nat := do
+  let index := (← getThe State).nextBlockIndex
+  modifyThe State ({ · with nextBlockIndex := index + 1 })
+  return index
+
+/--
+Increments the block index counter and returns the block definition name with the index before the
+increment.
+
+The name is the document's constant name followed by {lit}`block` and the index. The index is a
+number component, which can't be written in source. This function should be called outside the
+elaboration of top-level blocks, where the parent name is the document's constant name.
+
+Contexts in which the document's constant name is anonymous have no block definition names, because
+the block definitions of two such documents would collide. Asking for one is an error.
+-/
+public def PartElabM.nextBlockDefinitionName : PartElabM Name := do
+  let docConstName := (← read).docConstName
+  if docConstName.isAnonymous then
+    throwError "The document has no constant name, so its blocks' definitions can't be created. \
+      Give its `DocElabContext` a `docConstName`."
+  return blockDefinitionName docConstName (← incrementBlockIndex)
+
+/--
+Elaborates {name}`value` against the type {name}`typeSyntax`, and adds it to the environment as the
+compiled definition {name}`name`. Returns whether the definition was added.
+
+When {name}`skipIfErrors` is {lean}`true`, a value with elaboration errors is not added.
+
+The term is elaborated with {name}`name` as its declaration name, so the names of auxiliary
+definitions are assigned based on the definition's name. An error without a position of its own is
+reported at {name}`value`. It is an error for {name}`value` to refer to local variables. The
+definition has the reducibility hint that Lean gives an ordinary {lit}`def`.
+-/
+def compileDefinition (typeSyntax : Term) (name : Name) (value : Term) (skipIfErrors := false) :
+    TermElabM Bool :=
+  Term.withDeclName name <| withRef value <| withCurrHeartbeats do
+    let mut type ← Term.elabType typeSyntax
+    let mut valueExpr ← Term.elabTerm value (some type)
+
+    -- Wrap auto-bound implicits and global variables (this is possibly overly defensive)
+    type ← Meta.mkForallFVars (← Term.addAutoBoundImplicits #[] none) type
+
+    -- Replace any universe metavariables with universe variables; report errors
+    type ← Term.levelMVarToParam type
+    match sortDeclLevelParams [] [] (collectLevelParams {} type |>.params) with
+    | Except.error msg      => throwErrorAt value msg
+    | Except.ok levelParams =>
+      Term.synthesizeSyntheticMVarsNoPostponing
+      type ← instantiateMVars type
+      valueExpr ← Term.ensureHasType (some type) (← instantiateMVars valueExpr)
+      valueExpr ← instantiateMVars valueExpr
+      if skipIfErrors && valueExpr.hasSyntheticSorry then return false
+      let fvars := (collectFVars {} valueExpr).fvarIds
+      unless fvars.isEmpty do
+        let refs := MessageData.joinSep (fvars.map (m!"`{mkFVar ·}`")).toList ", "
+        throwError m!"Can't refer to a local variable here (reference to {refs})."
+      let decl := Declaration.defnDecl {
+        name,
+        levelParams,
+        type,
+        value := valueExpr,
+        hints := .regular (getMaxHeight (← getEnv) valueExpr + 1),
+        safety := .safe
+      }
+
+      -- This is possibly overly defensive (or ineffectual)
+      Term.ensureNoUnassignedMVars decl
+      withOptions (·.setBool `compiler.extract_closed false) <| addAndCompile decl
+      return true
+
+/--
+Elaborates {name}`block`, a term of type {lit}`DocReconstruction g → Block g` for the genre
+{name}`genreSyntax`, and adds it to the environment as the compiled definition {name}`name`, as
+{name}`compileDefinition` does.
+-/
+def compileBlock (genreSyntax : Term) (name : Name) (block : Term) : TermElabM Unit :=
+  withRef block do
+    let type ← ``(DocReconstruction $genreSyntax → Doc.Block $genreSyntax)
+    discard <| compileDefinition type name block
+
+/--
+Returns the name of the next definition created for the document's blocks or for the contents of
+its footnotes.
+
+The name is assigned based on the context's {name}`DocElabContext.declName`. If the document's
+constant name is a proper prefix of the declaration name, the declaration name is the parent name.
+In that case, the name is the declaration name while the environment doesn't contain it yet. Once
+the environment contains it, the block index counter is incremented, and the name is the block
+definition name that consists of the parent name, {lit}`block` and the counter's value before the
+increment. In all other cases, the name comes from {name}`PartElabM.nextBlockDefinitionName`.
+-/
+def PartElabM.nextDefinitionName : PartElabM Name := do
+  let ctx ← read
+  if ctx.declName == ctx.docConstName || !ctx.docConstName.isPrefixOf ctx.declName then
+    nextBlockDefinitionName
+  else if !(← getEnv).contains ctx.declName then pure ctx.declName
+  else pure (blockDefinitionName ctx.declName (← incrementBlockIndex))
+
+/--
+Creates and compiles the definition of {name}`block` as a function of {name}`param`, and adds the
+block to the current part. The definition's name comes from {name}`PartElabM.nextDefinitionName`.
+-/
+def PartElabM.addBlockWithParameter (param : Ident) (block : Term) : PartElabM Unit := do
+  let ctx ← read
+  let .some docReconstructionPlaceholder := ctx.docReconstructionPlaceholder
+    | throwErrorAt block "No doc reconstruction placeholder available"
+  let name ← nextDefinitionName
+  compileBlock ⟨ctx.genreSyntax⟩ name (← `(fun $param => $block))
+
+  let blockRefSyntax ← ``($(mkCIdent name) $docReconstructionPlaceholder)
+  modifyThe PartElabM.State fun st =>
+    { st with partContext.blocks := st.partContext.blocks.push blockRefSyntax }
+
+/--
+{given -show}`g : Genre`
+
+Creates and compiles the definition of a block (syntax that denotes a {lean}`Block g`), and adds the
+block to the current part.
+
+The definition is a function from document reconstruction data to a {name}`Block`. Its name is
+assigned based on the context's {name}`DocElabContext.declName` and the block index counter.
+-/
+public def PartElabM.addBlock (block : Term) : PartElabM Unit := do
   let .some docReconstructionPlaceholder := (← read).docReconstructionPlaceholder
     | throwErrorAt block "No doc reconstruction placeholder available"
-  let blockRefSyntax ← ``($(mkIdent name) $docReconstructionPlaceholder)
+  addBlockWithParameter docReconstructionPlaceholder block
 
-  -- If the internal block includes a doc reconstruction placeholder, it should be different from
-  -- the one in the current `DocElabContext` to maintain good hygiene.
-  let blockDefSyntax ← match blockInternalDocReconstructionPlaceholder with
-    | .none => `(fun $docReconstructionPlaceholder => $block)
-    | .some name => `(fun $name => $block)
+/--
+Elaborates a block with {name}`elabBlock` and adds it to the current part as {name}`addBlock` does.
 
-  modifyThe PartElabM.State fun st =>
-    { st with
-      partContext.blocks := st.partContext.blocks.push blockRefSyntax
-      deferredBlocks := st.deferredBlocks.push (name, blockDefSyntax)
-    }
+The block is elaborated with a fresh document reconstruction placeholder, which differs from the
+context's placeholder and becomes the parameter of the block's definition.
+-/
+public def PartElabM.elabAndAddBlock (elabBlock : PartElabM Term) : PartElabM Unit := do
+  let placeholder := mkIdent (← mkFreshUserName `docReconstInBlock)
+  let block ←
+    withTheReader DocElabContext ({ · with docReconstructionPlaceholder := some placeholder })
+      elabBlock
+  addBlockWithParameter placeholder block
 
 public def PartElabM.addPart (finished : FinishedPart) : PartElabM Unit := modifyThe State fun st =>
   { st with partContext.priorParts := st.partContext.priorParts.push finished }
@@ -370,9 +536,9 @@ public def PartElabM.State.documentPos? (state : PartElabM.State) : Option Strin
 Records a definition or use of a link or footnote in the info tree, for editor features.
 -/
 def pushDocRefInfo [Monad m] [MonadInfoTree m]
-    (state : PartElabM.State) (kind : DocRefKind) (labelStx : TSyntax `str) (isDef : Bool) : m Unit :=
+    (state : PartElabM.State) (kind : DocRefKind) (labelStx : VersoRefName) (isDef : Bool) : m Unit :=
   let info : DocRefInfo :=
-    { kind, label := labelStx.getString, documentPos? := state.documentPos?, isDef }
+    { kind, label := labelStx.getVersoRefName, documentPos? := state.documentPos?, isDef }
   pushInfoLeaf <| .ofCustomInfo { stx := labelStx, value := Dynamic.mk info }
 
 /--
@@ -387,7 +553,7 @@ def describeDefLocation {α : Type} (d : DocDef α) : PartElabM MessageData := d
     return m!"{lineCol} of {d.fileName}"
 
 /-- A definition of the label {name}`labelStx` with the value {name}`val`, in the current file. -/
-def PartElabM.mkDocDef {α : Type} (labelStx : TSyntax `str) (val : α) : PartElabM (DocDef α) := do
+def PartElabM.mkDocDef {α : Type} (labelStx : VersoRefName) (val : α) : PartElabM (DocDef α) := do
   let position := (← getFileMap).toPosition (labelStx.raw.getPos?.getD 0)
   return { labelStx, val, fileName := ← getFileName, position }
 
@@ -395,8 +561,8 @@ def PartElabM.mkDocDef {α : Type} (labelStx : TSyntax `str) (val : α) : PartEl
 Records the definition of the link whose label is {name}`labelStx`. A second definition of the same
 label in one document is an error.
 -/
-public def PartElabM.addLinkDef (labelStx : TSyntax `str) (url : String) : PartElabM Unit := do
-  let label := labelStx.getString
+public def PartElabM.addLinkDef (labelStx : VersoRefName) (url : String) : PartElabM Unit := do
+  let label := labelStx.getVersoRefName
   match (← getThe State).linkDefs[label]? with
   | none =>
     let d ← mkDocDef labelStx url
@@ -409,8 +575,8 @@ public def PartElabM.addLinkDef (labelStx : TSyntax `str) (url : String) : PartE
 /--
 Records a use of the link whose label is {name}`labelStx`, and returns a term for its URL.
 -/
-public def DocElabM.addLinkRef (labelStx : TSyntax `str) : DocElabM (TSyntax `term) := do
-  let label := labelStx.getString
+public def DocElabM.addLinkRef (labelStx : VersoRefName) : DocElabM (TSyntax `term) := do
+  let label := labelStx.getVersoRefName
   match (← readThe DocElabContext).refsAllowed with
     | .always => pure ()
     | .onlyIfDefined =>
@@ -425,42 +591,47 @@ public def DocElabM.addLinkRef (labelStx : TSyntax `str) : DocElabM (TSyntax `te
   ``(DocReconstruction.linkUrl $docReconst $(quote label))
 
 /--
-Elaborates a footnote's contents to check them, and reports their errors. Returns {lean}`true` when
-the contents have no errors. The elaborated term is discarded, and the info tree is left unchanged.
+Elaborates a footnote's contents {name}`content` and reports their errors. Returns a term that
+denotes the contents as a function from the document reconstruction data to inlines.
 -/
-def PartElabM.checkFootnoteContents (content : Array (TSyntax `term)) : PartElabM Bool := do
+def PartElabM.elabFootnoteContents (content : Array (TSyntax `term)) : PartElabM Term := do
   let ctx ← readThe DocElabContext
   let .some docReconst := ctx.docReconstructionPlaceholder
     | throwError "No doc reconstruction placeholder available"
   let genre : Term := ⟨ctx.genreSyntax⟩
-  let stx ← ``(fun ($docReconst : DocReconstruction $genre) => (#[$content,*] : Array (Doc.Inline $genre)))
-  let act : TermElabM Bool := withEnableInfoTree false do
-    try
-      let e ← Term.elabTerm stx none
-      Term.synthesizeSyntheticMVarsNoPostponing
-      return !(← instantiateMVars e).hasSyntheticSorry
+  let stx ←
+    ``(fun ($docReconst : DocReconstruction $genre) => (#[$content,*] : Array (Doc.Inline $genre)))
+  let empty ← ``(fun (_ : DocReconstruction $genre) => (#[] : Array (Doc.Inline $genre)))
+  let orEmpty (act : TermElabM Term) : TermElabM Term := do
+    try act
     catch ex =>
       logException ex
-      return false
-  act
+      return empty
+  if ctx.docConstName.isAnonymous then
+    withEnableInfoTree false <| orEmpty do
+      let e ← Term.elabTerm stx none
+      Term.synthesizeSyntheticMVarsNoPostponing
+      return if (← instantiateMVars e).hasSyntheticSorry then empty else stx
+  else
+    let name ← nextDefinitionName
+    let type ← ``(DocReconstruction $genre → Array (Doc.Inline $genre))
+    orEmpty do
+      let compiled ← compileDefinition type name stx (skipIfErrors := true)
+      return if compiled then mkCIdent name else empty
 
 /--
 Records the definition of the footnote whose label is {name}`labelStx`, with the contents
 {name}`content`, which are terms that denote inlines. A second definition of the same label in one
 document is an error.
 
-The contents are checked here, so that their errors appear at the definition. Contents with errors
-are recorded as empty.
-
 {name}`contentUses` are the footnote uses in the contents, each paired with its label.
 -/
-public def PartElabM.addFootnoteDef (labelStx : TSyntax `str) (content : Array (TSyntax `term))
+public def PartElabM.addFootnoteDef (labelStx : VersoRefName) (content : Array (TSyntax `term))
     (contentUses : Array (String × Syntax) := #[]) : PartElabM Unit := do
-  let label := labelStx.getString
+  let label := labelStx.getVersoRefName
   match (← getThe State).footnoteDefs[label]? with
   | none =>
-    let content := if ← checkFootnoteContents content then content else #[]
-    let d ← mkDocDef labelStx content
+    let d ← mkDocDef labelStx (← elabFootnoteContents content)
     modifyThe State fun st => { st with
       footnoteDefs := st.footnoteDefs.insert label d
       footnoteUses := st.footnoteUses.insert label contentUses
@@ -473,8 +644,8 @@ public def PartElabM.addFootnoteDef (labelStx : TSyntax `str) (content : Array (
 /--
 Records a use of the footnote whose label is {name}`labelStx`, and returns a term for its contents.
 -/
-public def DocElabM.addFootnoteRef (labelStx : TSyntax `str) : DocElabM (TSyntax `term) := do
-  let label := labelStx.getString
+public def DocElabM.addFootnoteRef (labelStx : VersoRefName) : DocElabM (TSyntax `term) := do
+  let label := labelStx.getVersoRefName
   match (← readThe DocElabContext).refsAllowed with
     | .always => pure ()
     | .onlyIfDefined =>
@@ -572,7 +743,7 @@ public def closes (openTok closeTok : Syntax) : DocElabM Unit := do
   let lineStr := if lineStr.startsWith "`" || lineStr.endsWith "`" then " " ++ lineStr ++ " " else lineStr.copy
   Hover.addCustomHover closeTok (.markdown s!"Closes line {line + 1}: ``````````{lineStr}``````````")
 
-public abbrev InlineExpander := Syntax → DocElabM (TSyntax `term)
+public abbrev InlineExpander := InlineView → DocElabM (TSyntax `term)
 
 initialize inlineExpanderAttr : KeyedDeclsAttribute InlineExpander ←
   mkDocExpanderAttribute `inline_expander ``InlineExpander "Indicates that this function expands inline elements of a given name" `inlineExpanderAttr
@@ -588,8 +759,8 @@ public opaque inlineExpandersFor (x : Name) : DocElabM (Array InlineExpander)
 Creates a term denoting a {lean}`VersoDoc` value from a {lean}`FinishedPart`. This is the final step
 in turning a parsed verso doc into syntax.
 
-It also reports the document's undefined and unused links and footnotes, and compiles the document's
-blocks.
+It also reports the document's undefined and unused links and footnotes. The term applies each of
+the document's block definitions to the reconstruction data.
 -/
 public def FinishedPart.toVersoDoc
     (genreSyntax : Term)
@@ -613,38 +784,6 @@ public def FinishedPart.toVersoDoc
     else
       logAt stx msg severity
 
-  -- Add and compile blocks
-  for (name, block) in partElabState.deferredBlocks do
-    withRef block do
-    withCurrHeartbeats do -- reset the heartbeat count for each block addAndCompile
-
-      let mut type ← Term.elabType (← ``(DocReconstruction $genreSyntax → Doc.Block $genreSyntax))
-      let mut blockExpr ← Term.elabTerm block (some type)
-
-      -- Wrap auto-bound implicits and global variables (this is possibly overly defensive)
-      type ← Meta.mkForallFVars (← Term.addAutoBoundImplicits #[] none) type
-
-      -- Replace any universe metavariables with universe variables; report errors
-      type ← Term.levelMVarToParam type
-      match sortDeclLevelParams [] [] (collectLevelParams {} type |>.params) with
-      | Except.error msg      => throwErrorAt block msg
-      | Except.ok levelParams =>
-        Term.synthesizeSyntheticMVarsNoPostponing
-        type ← instantiateMVars type
-        blockExpr ← Term.ensureHasType (some type) (← instantiateMVars blockExpr)
-        let decl := Declaration.defnDecl {
-          name,
-          levelParams,
-          type,
-          value := blockExpr,
-          hints := .abbrev,
-          safety := .safe
-        }
-
-        -- This is possibly overly defensive (or ineffectual)
-        Term.ensureNoUnassignedMVars decl
-        withOptions (·.setBool `compiler.extract_closed false) <| addAndCompile decl
-
   -- Generate and return outermost syntax
   let finishedSyntax ← finished.toSyntax genreSyntax
   let .some docReconstructionPlaceholder := ctx.docReconstructionPlaceholder
@@ -654,7 +793,7 @@ public def FinishedPart.toVersoDoc
     | .none => Json.mkObj []
     | .some table => Json.mkObj [("highlight", table.toExport.toJson)]
 
-  let body ← refTables genreSyntax docReconstructionPlaceholder partElabState finishedSyntax
+  let body ← refTables docReconstructionPlaceholder partElabState finishedSyntax
   ``(VersoDoc.mk (fun $docReconstructionPlaceholder => $body) $(quote reconstJson.compress))
 where
   /--
@@ -663,7 +802,7 @@ where
   Each footnote's contents can use the links. Footnotes are added in the order of
   {name}`footnoteOrder`, so each footnote comes after its footnote dependencies.
   -/
-  refTables (genreSyntax : Term) (docReconst : Ident) (partElabState : PartElabM.State) (body : Term) :
+  refTables (docReconst : Ident) (partElabState : PartElabM.State) (body : Term) :
       TermElabM Term := do
     if partElabState.linkDefs.isEmpty && partElabState.footnoteDefs.isEmpty then
       return body
@@ -671,9 +810,7 @@ where
       ``(($(quote label), $(quote d.val)))
     let footnotes ← (footnoteOrder partElabState).1.filterMapM fun label => do
       let some d := partElabState.footnoteDefs[label]? | return none
-      some <$> ``(($(quote label),
-          fun ($docReconst : DocReconstruction $genreSyntax) =>
-            (#[$(d.val),*] : Array (Doc.Inline $genreSyntax))))
+      some <$> ``(($(quote label), $(d.val)))
     let tables ← ``(DocReconstruction.withDefs $docReconst #[$links,*] #[$footnotes,*])
     `(let $docReconst := $tables
       $body)
@@ -682,7 +819,7 @@ where
       d1.labelStx.raw.getPos?.getD 0 ≤ d2.labelStx.raw.getPos?.getD 0
 
 
-public abbrev BlockExpander := Syntax → DocElabM (TSyntax `term)
+public abbrev BlockExpander := BlockView → DocElabM (TSyntax `term)
 
 initialize blockExpanderAttr : KeyedDeclsAttribute BlockExpander ←
   mkDocExpanderAttribute `block_expander ``BlockExpander "Indicates that this function expands block elements of a given name" `blockExpanderAttr
@@ -725,7 +862,7 @@ initialize expanderSignatureExt :
 public def sig (α) [inst : FromArgs α DocElabM] : Option ArgParse.SigDoc :=
   inst.fromArgs.signature
 
-public abbrev PartCommand := Syntax → PartElabM Unit
+public abbrev PartCommand := BlockView → PartElabM Unit
 
 initialize partCommandAttr : KeyedDeclsAttribute PartCommand ←
   mkDocExpanderAttribute `part_command ``PartCommand "Indicates that this function is used for side effects on the structure of the document" `partCommandAttr
@@ -760,14 +897,15 @@ private def mkExpanderExtension (name : Name) : IO ExpanderExtension :=
       .uniform entries.toArray
   }
 
-public abbrev RoleExpander := Array Arg → TSyntaxArray `inline → DocElabM (Array (TSyntax `term))
+public abbrev RoleExpander := Array Arg → Array VersoInline → DocElabM (Array (TSyntax `term))
 
-public abbrev RoleExpanderOf α := α → TSyntaxArray `inline → DocElabM Term
+public abbrev RoleExpanderOf α := α → Array VersoInline → DocElabM Term
 
 initialize roleExpanderAttr : KeyedDeclsAttribute RoleExpander ←
   mkDocExpanderAttribute `role_expander ``RoleExpander "Indicates that this function is used to implement a given role" `roleExpanderAttr
 
-public def toRole {α : Type} [FromArgs α DocElabM] (expander : α → TSyntaxArray `inline → DocElabM Term) : RoleExpander :=
+public def toRole {α : Type} [FromArgs α DocElabM]
+    (expander : α → Array VersoInline → DocElabM Term) : RoleExpander :=
   fun args inlines => do
     let v ← ArgParse.parse args
     return #[← expander v inlines]
@@ -906,15 +1044,17 @@ unsafe initialize registerBuiltinAttribute {
 }
 
 
-public abbrev CodeBlockExpander := Array Arg → TSyntax `str → DocElabM (Array (TSyntax `term))
+public abbrev CodeBlockExpander :=
+  Array Arg → VersoCodeBlock → DocElabM (Array (TSyntax `term))
 
-public abbrev CodeBlockExpanderOf α := α → StrLit → DocElabM Term
+public abbrev CodeBlockExpanderOf α := α → VersoCodeBlock → DocElabM Term
 
 
 initialize codeBlockExpanderAttr : KeyedDeclsAttribute CodeBlockExpander ←
   mkDocExpanderAttribute `code_block_expander ``CodeBlockExpander "Indicates that this function is used to implement a given code block" `codeBlockExpanderAttr
 
-public def toCodeBlock {α : Type} [FromArgs α DocElabM] (expander : α → StrLit → DocElabM Term) : CodeBlockExpander :=
+public def toCodeBlock {α : Type} [FromArgs α DocElabM]
+    (expander : α → VersoCodeBlock → DocElabM Term) : CodeBlockExpander :=
   fun args str => do
     let v ← ArgParse.parse args
     return #[← expander v str]
@@ -997,15 +1137,16 @@ private def registeredCodeBlockNamesImpl : DocElabM (Array Name) :=
 @[implemented_by registeredCodeBlockNamesImpl]
 public opaque registeredCodeBlockNames : DocElabM (Array Name)
 
-public abbrev DirectiveExpander := Array Arg → TSyntaxArray `block → DocElabM (Array (TSyntax `term))
+public abbrev DirectiveExpander := Array Arg → Array VersoBlock → DocElabM (Array (TSyntax `term))
 
-public abbrev DirectiveExpanderOf α := α → TSyntaxArray `block → DocElabM Term
+public abbrev DirectiveExpanderOf α := α → Array VersoBlock → DocElabM Term
 
 
 initialize directiveExpanderAttr : KeyedDeclsAttribute DirectiveExpander ←
   mkDocExpanderAttribute `directive_expander ``DirectiveExpander "Indicates that this function is used to implement a given directive" `directiveExpanderAttr
 
-public def toDirective {α : Type} [FromArgs α DocElabM] (expander : α → TSyntaxArray `block → DocElabM Term) : DirectiveExpander :=
+public def toDirective {α : Type} [FromArgs α DocElabM]
+    (expander : α → Array VersoBlock → DocElabM Term) : DirectiveExpander :=
   fun args blocks => do
     let v ← ArgParse.parse args
     return #[← expander v blocks]

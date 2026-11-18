@@ -2,10 +2,20 @@
     "compilerOptions": {
         "lib": ["ES2024", "DOM", "DOM.Iterable"],
         "target": "ES2024",
-        "noEmit": true
+        "noEmit": true,
+        "checkJs": true,
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
     },
     "include": [
         "find.js",
+        "math.js",
         "theme-preload.js",
         "theme-toggle.js",
         "toc-resize.js",
