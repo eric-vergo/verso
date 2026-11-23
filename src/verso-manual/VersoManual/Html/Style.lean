@@ -6,7 +6,10 @@ Author: David Thrane Christiansen
 module
 namespace Verso.Genre.Manual.Html.Css
 
-public def pageStyle : String := r####"
+/--
+The stylesheet of the manual genre before the dark theme is appended. See `pageStyle`.
+-/
+def basePageStyle : String := r####"
 /******** Customizability ********/
 
 :root {
@@ -18,6 +21,12 @@ public def pageStyle : String := r####"
     /* Mobile font size */
     --verso-mobile-font-size: 16px;
 
+    /** Page colors **/
+    /* The page background, also used behind the fixed header and other opaque page furniture */
+    --verso-background-color: white;
+    /* The shadow below the fixed header */
+    --verso-header-shadow-color: lightgray;
+
     /** Header appearance **/
     --verso-header-height: 3rem;
     /* Height of the displayed logo **/
@@ -26,6 +35,11 @@ public def pageStyle : String := r####"
     /** Table of Contents appearance **/
     --verso-toc-background-color: #fafafa;
     --verso-toc-text-color: var(--verso-text-color);
+    /* Links in the ToC, at rest and while hovered */
+    --verso-toc-link-color: #333;
+    --verso-toc-link-hover-color: #000;
+    /* The disclosure triangles that open and close parts of the ToC */
+    --verso-toc-triangle-color: black;
 
     /* How long should the ToC animation take? */
     --verso-toc-transition-time: 0.4s;
@@ -103,6 +117,30 @@ body {
     padding: 0;
 }
 
+/******** Color theme ********/
+
+/*
+The page follows the reader's system color scheme unless a theme is chosen explicitly, in
+which case `data-theme` on the root element is "light" or "dark". The dark values of the
+color variables are at the end of this stylesheet.
+*/
+:root {
+    color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+html {
+    background-color: var(--verso-background-color);
+    color: var(--verso-text-color);
+}
+
 /******** Theme ********/
 
 h1, h2, h3, h4, h5, h6 {
@@ -140,11 +178,11 @@ header {
 	z-index: 99;
 	left: 0;
 	right: 0;
-	background: white;
+	background: var(--verso-background-color);
 	display: flex;
 	align-items: center;
 	height: var(--verso-header-height);
-	box-shadow: 0 0px 6px lightgray;
+	box-shadow: 0 0px 6px var(--verso-header-shadow-color);
 }
 
 .header-logo-wrapper {
@@ -173,7 +211,7 @@ header {
 
 .header-title {
     text-decoration: none;
-    color: black;
+    color: var(--verso-structure-color);
     font-size: 2rem;
     font-weight: bold;
     display: block;
@@ -345,13 +383,13 @@ main [id] {
 }
 
 #toc a {
-    color: #333;
+    color: var(--verso-toc-link-color);
     text-decoration: none;
 }
 
 #toc a:hover {
     text-decoration: underline;
-    color: #000;
+    color: var(--verso-toc-link-hover-color);
 }
 
 .toc-title {
@@ -415,7 +453,7 @@ main [id] {
     width: calc(var(--verso-toc-triangle-width) + var(--verso-toc-triangle-left-space));
     height: var(--verso-toc-triangle-height);
     display: inline-block;
-    background-color: black;
+    background-color: var(--verso-toc-triangle-color);
     content: ' ';
     transition: ease 0.2s;
     margin-right: var(--verso-toc-triangle-margin);
@@ -513,7 +551,7 @@ main [id] {
     flex: 1;
     justify-content: center;
     align-items: center;
-    color: black;
+    color: var(--verso-structure-color);
     text-decoration: none;
 }
 
@@ -658,6 +696,53 @@ body:has(#toggle-toc:checked) #toggle-toc-click .line3 {
 }
 #meta-links li {
     display: inline-block;
+}
+
+/******** Color theme control ********/
+
+/* A three-way choice between the light theme, the dark theme, and following the system. It
+   is shown at the foot of the ToC once `theme-toggle.js` has run. */
+.theme-toggle {
+    display: flex;
+    margin: 0.5rem 1rem 1rem;
+    border: 1px solid color-mix(in srgb, currentcolor 35%, transparent);
+    border-radius: 0.4rem;
+    overflow: hidden;
+    font-family: var(--verso-structure-font-family);
+    font-size: 85%;
+}
+
+.theme-toggle[hidden] {
+    display: none;
+}
+
+.theme-toggle button {
+    flex: 1;
+    margin: 0;
+    padding: 0.25rem 0.4rem;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.theme-toggle button + button {
+    border-left: 1px solid color-mix(in srgb, currentcolor 35%, transparent);
+}
+
+.theme-toggle button:hover {
+    background: color-mix(in srgb, currentcolor 8%, transparent);
+}
+
+.theme-toggle button[aria-checked="true"] {
+    background: color-mix(in srgb, currentcolor 16%, transparent);
+    font-weight: bold;
+}
+
+.theme-toggle button:focus-visible {
+    outline: 2px solid currentcolor;
+    outline-offset: -3px;
 }
 
 /******** Text ********/
@@ -983,3 +1068,91 @@ main section li ol {
 }
 
 "####
+
+/--
+Custom property values of the dark color theme, used when `data-theme="dark"` is set on the root
+element and when the reader's system prefers a dark color scheme (unless `data-theme="light"` is
+set). Sites that customize colors can override them with the same selectors.
+-/
+public def darkThemeVariables : Array (String × String) := #[
+  -- Page colors
+  ("--verso-background-color", "#16181d"),
+  ("--verso-surface-color", "#1f2228"),
+  ("--verso-border-color", "#3a3f48"),
+  ("--verso-muted-color", "#9aa1ac"),
+  ("--verso-text-color", "#dfe2e7"),
+  ("--verso-structure-color", "#f3f4f6"),
+  ("--verso-code-color", "#dfe2e7"),
+  ("--verso-link-color", "#8ab4f8"),
+  ("--verso-link-visited-color", "#c58af9"),
+  ("--verso-selected-color", "#26394f"),
+  ("--verso-header-shadow-color", "#000000"),
+  ("--verso-code-background-color", "#16181d"),
+  ("--verso-docstring-border-color", "#4d6a7a"),
+  -- Table of contents
+  ("--verso-toc-background-color", "#1c1f25"),
+  ("--verso-toc-border-color", "#3a3f48"),
+  ("--verso-toc-resize-handle-color", "#8a919c"),
+  ("--verso-toc-link-color", "#c9ced6"),
+  ("--verso-toc-link-hover-color", "#ffffff"),
+  ("--verso-toc-triangle-color", "#c9ced6"),
+  ("--verso-burger-toc-visible-shadow-color", "#16181d"),
+  ("--verso-burger-toc-hidden-color", "#dfe2e7"),
+  ("--verso-burger-toc-hidden-shadow-color", "#16181d"),
+  -- Tooltips
+  ("--verso-tooltip-color", "#dfe2e7"),
+  ("--verso-tooltip-bg-color", "#2a2e36"),
+  ("--verso-tooltip-border-color", "#6b7280"),
+  ("--verso-tooltip-separator-color", "#454b55"),
+  -- Messages
+  ("--verso-code-info-hover-bg-color", "#23407a"),
+  ("--verso-info-indicator-color", "#6f9bff"),
+  ("--verso-tooltip-info-border-color", "#6f9bff"),
+  ("--verso-code-warning-hover-bg-color", "#5c4712"),
+  ("--verso-tooltip-warning-border-color", "#b98a2a"),
+  ("--verso-code-error-hover-bg-color", "#6a2626"),
+  ("--verso-error-indicator-color", "#ff5c5c"),
+  ("--verso-message-error-color", "#ff8a8a"),
+  ("--verso-tooltip-error-border-color", "#c25555"),
+  -- Proof states and interactive code
+  ("--verso-tactic-state-color", "#dfe2e7"),
+  ("--verso-tactic-state-bg-color", "#1f2228"),
+  ("--verso-tactic-state-border-color", "#5b6270"),
+  ("--verso-tactic-toggle-color", "#6b7280"),
+  ("--verso-tactic-toggle-checked-color", "#9ca3af"),
+  ("--verso-code-hover-bg-color", "#343a45")
+]
+
+/--
+Rules of the dark color theme for elements whose light appearance is the browser's default. Each
+selector is applied with zero specificity, so every rule of the site's stylesheets takes precedence.
+-/
+def darkThemeRules : Array (String × Array (String × String)) := #[
+  ("a:link", #[("color", "var(--verso-link-color)")]),
+  ("a:visited", #[("color", "var(--verso-link-visited-color)")])
+]
+
+/-- Renders the dark theme for one trigger, a selector that matches the root element. -/
+def darkThemeBlock (trigger : String) (indent : String := "") : String := Id.run do
+  let decls (ds : Array (String × String)) : String :=
+    ds.foldl (init := "") fun acc (name, value) => acc ++ s!"{indent}    {name}: {value};\n"
+  let mut out := s!"{indent}{trigger} \{\n" ++ decls darkThemeVariables ++ s!"{indent}}\n"
+  for (sel, ds) in darkThemeRules do
+    out := out ++ s!"{indent}:where({trigger} {sel}) \{\n" ++ decls ds ++ s!"{indent}}\n"
+  return out
+
+/--
+The dark color theme: the values in `darkThemeVariables` and the rules in `darkThemeRules`, for
+`data-theme="dark"` and for a system preference for dark colors unless `data-theme="light"`.
+-/
+public def darkThemeStyle : String :=
+  "\n/******** Dark theme ********/\n\n" ++
+  darkThemeBlock "html[data-theme=\"dark\"]" ++
+  "\n@media (prefers-color-scheme: dark) {\n" ++
+  darkThemeBlock "html:not([data-theme=\"light\"])" (indent := "  ") ++
+  "}\n"
+
+/--
+The stylesheet of the manual genre (`book.css`), including its dark theme.
+-/
+public def pageStyle : String := basePageStyle ++ darkThemeStyle

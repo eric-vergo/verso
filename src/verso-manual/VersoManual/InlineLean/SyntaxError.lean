@@ -52,7 +52,7 @@ block_extension Block.syntaxError via withHighlighting where
   -webkit-user-select: none;
   display: inline-block;
   content: counter(linenumber);
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--verso-border-color, #ddd);
   width: 2em;
   padding-right: 0.25em;
   margin-right: 0.25em;

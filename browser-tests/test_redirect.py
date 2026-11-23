@@ -48,8 +48,10 @@ class TestFindPage:
         assert errors == []
 
     def test_no_name(self, server: str, page: Page):
+        """Without a name, the page explains the problem but keeps its own title."""
         errors = self.open_find(server, page, f"domain={SECTION}")
-        expect(page).to_have_title("No name provided")
+        expect(page.locator("#title")).to_have_text("No name provided")
+        expect(page).to_have_title("Cross-Reference Redirection")
         assert errors == []
 
     def test_repeated_domain(self, server: str, page: Page):

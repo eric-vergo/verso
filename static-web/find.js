@@ -74,8 +74,19 @@ function el(tag, ...children) {
  * @param {...Node} message
  */
 function show(title, ...message) {
+    showWith(true, title, ...message);
+}
+
+/**
+ * Shows a heading and an explanatory message once the page has loaded. With `setTitle` false, the
+ * document keeps its own title.
+ * @param {boolean} setTitle
+ * @param {string} title
+ * @param {...Node} message
+ */
+function showWith(setTitle, title, ...message) {
     const render = () => {
-        document.title = title;
+        if (setTitle) document.title = title;
         document.querySelector("#title")?.replaceChildren(title);
         document.querySelector("#message")?.replaceChildren(...message);
     };
@@ -167,7 +178,10 @@ function main() {
     }
 
     if (!name) {
-        show(
+        // Keep the page's own title: "No name provided" describes the missing query parameter,
+        // not the page, and would otherwise become the name of a bookmark or browser tab.
+        showWith(
+            false,
             "No name provided",
             el(
                 "p",
